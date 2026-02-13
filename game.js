@@ -105,12 +105,24 @@ class Game {
         window.addEventListener('keyup', e => this.keys[e.key.toLowerCase()] = false);
         this.canvas.addEventListener('mousedown', e => this.handleInput(e));
         this.canvas.addEventListener('mousemove', e => { if (this.isMouseDown) this.handleInput(e); });
-        this.canvas.addEventListener('mouseup', () => this.isMouseDown = false);
-
         document.getElementById('start-btn').onclick = () => this.start();
+
+        // Touch Support for Mobile
+        this.canvas.addEventListener('touchstart', e => this.handleTouch(e), { passive: false });
+        this.canvas.addEventListener('touchmove', e => this.handleTouch(e), { passive: false });
+        this.canvas.addEventListener('touchend', () => this.isMouseDown = false);
 
         this.resize();
         this.loop();
+    }
+
+    handleTouch(e) {
+        e.preventDefault();
+        if (this.state !== 'PLAYING' && this.state !== 'BOSS') return;
+        this.isMouseDown = true;
+        const touch = e.touches[0];
+        this.player.targetX = touch.clientX;
+        this.player.targetY = touch.clientY;
     }
 
     resize() {
