@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOUNDLESS | Silence is Survival</title>
+    <link rel="icon" type="image/png" href="game_favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Space+Grotesk:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ffcc;
+            --danger: #ff0055;
+            --bg: #05050a;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #0a0a1a 0%, #05050a 100%);
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        /* --- UI OVERLAYS --- */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .glass-panel {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            letter-spacing: 0.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(180deg, #fff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
+        }
+
+        p.tagline {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+        }
+
+        .rule-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .rule-item {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+
+        .rule-item span {
+            color: var(--primary);
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        button {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 30px var(--primary);
+        }
+
+        /* --- HUD --- */
+        #hud {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .top-hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .hud-stat {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .noise-container {
+            width: 400px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .noise-bar-outer {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        #noise-bar-inner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--danger));
+            transition: width 0.1s linear;
+        }
+
+        #jumpscare-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #jumpscare-overlay.active {
+            opacity: 1;
+        }
+
+        .skull {
+            font-size: 40vw;
+            animation: intense 0.05s infinite;
+        }
+
+        @keyframes intense {
+            0% {
+                transform: scale(1) translate(0, 0);
+                filter: hue-rotate(0deg) invert(1);
+            }
+
+            33% {
+                transform: scale(1.3) translate(20px, -20px);
+                filter: hue-rotate(90deg) invert(1);
+            }
+
+            66% {
+                transform: scale(0.8) translate(-20px, 20px);
+                filter: hue-rotate(180deg) invert(1);
+            }
+
+            100% {
+                transform: scale(1.1) translate(0, 0);
+                filter: hue-rotate(270deg) invert(1);
+            }
+        }
+
+        /* --- VIGNETTE --- */
+        #vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.9) 100%);
+            z-index: 5;
+        }
+
+        .fade-screen {
+            background: #000;
+            z-index: 200;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="vignette"></div>
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- HUD -->
+        <div id="hud">
+            <div class="top-hud">
+                <div class="hud-stat">
+                    <div class="stat-label">Location</div>
+                    <div id="location-text" class="stat-value">FOREST PATH</div>
+                </div>
+                <div class="hud-stat">
+                    <div class="stat-label">Echo Threat</div>
+                    <div id="status-text" class="stat-value">DORMANT</div>
+                </div>
+            </div>
+
+            <div class="noise-container">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <span class="stat-label">Ambient Disturbance</span>
+                    <span id="noise-percent" style="font-family: Orbitron; font-size: 0.8rem;">0%</span>
+                </div>
+                <div class="noise-bar-outer">
+                    <div id="noise-bar-inner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- UI Overlays -->
+        <div id="menu-overlay" class="overlay">
+            <div class="glass-panel">
+                <h1>SOUNDLESS</h1>
+                <p class="tagline">The Echo Stalkers are Listening</p>
+                <div class="rule-grid">
+                    <div class="rule-item"><span>STILLNESS</span>Immune to detection while stationary.</div>
+                    <div class="rule-item"><span>TIME</span>Moving for 5 seconds spikes noise.</div>
+                    <div class="rule-item"><span>ESCAPE</span>Find the lantern, find the home.</div>
+                    <div class="rule-item"><span>SURVIVAL</span>30s silence trial at the cabin.</div>
+                </div>
+                <button id="start-btn">BEGIN THE JOURNEY</button>
+            </div>
+        </div>
+
+        <div id="game-over-overlay" class="overlay hidden">
+            <div class="glass-panel">
+                <h1 id="end-title" style="background: var(--danger); -webkit-background-clip: text;">ECHO DETECTED</h1>
+                <p id="end-msg" style="margin-bottom: 2rem;">The silence was broken.</p>
+                <button onclick="location.reload()">RETRY JOURNEY</button>
+            </div>
+        </div>
+
+        <div id="jumpscare-overlay">
+            <div class="skull">💀</div>
+        </div>
+
+        <div id="fade-overlay" class="overlay fade-screen hidden"></div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+
+</html>
